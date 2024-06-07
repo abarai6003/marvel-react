@@ -1,0 +1,102 @@
+import "./charInfo.scss"
+import Skeleton from "../skeleton/Skeleton"
+import ErrorMessage from "../errorMessage/errorMessage"
+import Spinner from "../spinner/Spinner"
+import useMarvelService from "../../services/MarvelService"
+import { useState, useEffect } from "react"
+import PropTypes from "prop-types"
+
+const CharInfo = ({ selectedChar }) => {
+	const [char, setChar] = useState(null)
+	const [limitComics, setLimitComics] = useState(10)
+
+	const { loading, error, getCharacter, clearError } = useMarvelService()
+
+	useEffect(() => {
+		updateChar(selectedChar)
+	}, [selectedChar])
+
+	const charLoaded = char => {
+		setChar(() => char)
+	}
+
+	const updateChar = id => {
+		clearError()
+		if (!selectedChar) {
+			return
+		}
+
+		getCharacter(id).then(charLoaded)
+	}
+
+	const spinner = loading ? <Spinner /> : null
+	const errorMessage = error ? <ErrorMessage /> : null
+	const content = !(error || loading || !char) ? (
+		<View char={char} limitComics={limitComics} />
+	) : null
+	const skeleton = char || loading || error ? null : <Skeleton />
+
+	return (
+		<div className='char__info'>
+			{errorMessage}
+			{spinner}
+			{content}
+			{skeleton}
+		</div>
+	)
+}
+
+const View = ({ limitComics, char }) => {
+	const getComicsElements = arr => {
+		const comicsElements = []
+		for (let i = 0; i < arr.length; i++) {
+			if (i === limitComics) {
+				break
+			}
+			comicsElements[i] = (
+				<li key={i} className='char__comics-item'>
+					{arr[i].name}
+				</li>
+			)
+		}
+		return comicsElements
+	}
+
+	const { name, description, thumbnail, homepage, wiki, comics } = char
+
+	const notExist =
+		"http://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available.jpg"
+
+	const style =
+		thumbnail === notExist ? { objectFit: "contain" } : { objectFit: "cover" }
+
+	return (
+		<>
+			<div className='char__basics'>
+				<img src={thumbnail} alt={name} style={style} />
+				<div>
+					<div className='char__info-name'>{name}</div>
+					<div className='char__btns'>
+						<a href={homepage} className='button button__main'>
+							<div className='inner'>homepage</div>
+						</a>
+						<a href={wiki} className='button button__secondary'>
+							<div className='inner'>wiki</div>
+						</a>
+					</div>
+				</div>
+			</div>
+			<div className='char__descr'>{description}</div>
+			<div className='char__comics'>Comics:</div>
+			<ul className='char__comics-list'>
+				{comics.length > 0 ? null : "There is no comics with this character"}
+				{getComicsElements(comics)}
+			</ul>
+		</>
+	)
+}
+
+CharInfo.propTypes = {
+	selectedChar: PropTypes.number
+}
+export default CharInfo
